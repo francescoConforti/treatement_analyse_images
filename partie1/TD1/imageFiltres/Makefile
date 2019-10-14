@@ -1,7 +1,7 @@
 FILES = filtrage_Q1_TP freeman_extraction
 LDFLAGS = `pkg-config --cflags --libs opencv`
 
-all: filtrage_Q1_TP freeman_extraction
+all: filtrage_Q1_TP freeman_extraction clean
 
 freeman_extraction: freeman_extraction.o
 	g++ -Wall -o freeman_extraction freeman_extraction.o $(LDFLAGS)
@@ -16,4 +16,4 @@ filtrage_Q1_TP.o: filtrage_Q1_TP.cpp
 	g++ -Wall -c filtrage_Q1_TP.cpp $(LDFLAGS)
 
 clean:
-	rm -f *.o *~ $(FILES)
+	rm *.o
