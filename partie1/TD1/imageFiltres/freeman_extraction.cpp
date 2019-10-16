@@ -34,7 +34,7 @@ int main( int argc, char** argv ){
   MyPoint curr = MyPoint(0,0);
   MyPoint p0 = MyPoint(-1,-1);
   MyPoint p1 = MyPoint(-1,-1);
-  int contour[1000] = {};
+  int contour[3000] = {};
   int dir=4, k=0;
   Mat img;
   const char* filename = argc >=2 ? argv[1] : "lettre.pgm";
@@ -42,29 +42,24 @@ int main( int argc, char** argv ){
   // find starting point
   for(int i = 0; i < img.size().width && !fin; ++i){
     for(int j = 0; j < img.size().height && !fin; ++j){
-      if(img.at<uchar>(j, i) < 50){
-        next.x = i;
-        next.y = j;
+      if(img.at<uchar>(j, i) == 0){
         curr.x = i;
         curr.y = j;
+        p0 = MyPoint(i, j);
         fin = true;
       }
     }
   }
   fin = false;
   while(!fin){
-    cout << "curr: " << curr.x << " " << curr.y 
-      << " next: " << next.x << " " << next.y 
-      << " dir: " << dir << "\n";
-    while(img.at<uchar>(next.y, next.x) < 50){
+    while(img.at<uchar>(next.y, next.x) != 0
+          || next.x < 0 || next.x >= img.size().width
+          || next.y < 0 || next.y >= img.size().height){
       dir = (dir+1)%8;
       next = applyFreeman(curr, dir);
     }
     int dir_init = (dir+5)%8;
     if(k==0){
-      p0 = MyPoint(next.x, next.y);
-    }
-    else if(k==1){
       p1 = MyPoint(next.x, next.y);
     }
     else{
@@ -73,7 +68,6 @@ int main( int argc, char** argv ){
     curr=next;
     next = applyFreeman(curr, dir_init);
     contour[k] = dir;
-    cout << contour[k] << "\n";
     ++k;
     dir = dir_init;
   }
@@ -82,6 +76,7 @@ int main( int argc, char** argv ){
     cout << contour[i] << " ";
   }
   cout << "\n";
+  return 0;
 }
 
 MyPoint applyFreeman(MyPoint p, int dir){
