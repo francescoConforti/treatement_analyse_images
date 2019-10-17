@@ -40,16 +40,21 @@ int main( int argc, char** argv ){
   const char* filename = argc >=2 ? argv[1] : "lettre.pgm";
   img = imread( filename, IMREAD_GRAYSCALE );
   // find starting point
-  for(int i = 0; i < img.size().width && !fin; ++i){
-    for(int j = 0; j < img.size().height && !fin; ++j){
+  for(int j = 0; j < img.size().height && !fin; ++j){
+    for(int i = 0; i < img.size().width && !fin; ++i){
       if(img.at<uchar>(j, i) == 0){
         curr.x = i;
         curr.y = j;
         p0 = MyPoint(i, j);
         fin = true;
+        cout << "first point: " << curr.x << " " << curr.y << "\n";
       }
+      int nt = img.at<uchar>(j, i);
+      cout << nt << "\t";
     }
+    cout << "\n";
   }
+  cout << "img width: " << img.size().width << "img height: " << img.size().height << "\n";
   fin = false;
   while(!fin){
     while(img.at<uchar>(next.y, next.x) != 0
@@ -72,7 +77,7 @@ int main( int argc, char** argv ){
     dir = dir_init;
   }
   cout << "k: " << k << "\n";
-  for(int i=0; i<k; ++i){
+  for(int i=0; i<k-1; ++i){ // contour[k] is the first point again
     cout << contour[i] << " ";
   }
   cout << "\n";
@@ -90,28 +95,28 @@ MyPoint applyFreeman(MyPoint p, int dir){
       break;
     case 1:
       res.x = res.x +1;
-      res.y = res.y +1;
+      res.y = res.y -1;
       break;
     case 2:
-      res.y = res.y +1;
+      res.y = res.y -1;
       break;
     case 3:
       res.x = res.x -1;
-      res.y = res.y +1;
+      res.y = res.y -1;
       break;
     case 4:
       res.x = res.x -1;
       break;
     case 5:
       res.x = res.x -1;
-      res.y = res.y -1;
+      res.y = res.y +1;
       break;
     case 6:
-      res.y = res.y -1;
+      res.y = res.y +1;
       break;
     case 7:
       res.x = res.x +1;
-      res.y = res.y -1;
+      res.y = res.y +1;
       break;
   }
   return res;
