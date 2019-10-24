@@ -78,7 +78,7 @@ int main( int argc, char** argv ){
   }
   cout << "k: " << k << "\n";
   for(int i=0; i<k-1; ++i){ // contour[k] is the first point again
-    cout << contour[i] << " ";
+    cout << contour[i];
   }
   cout << "\n";
   return 0;

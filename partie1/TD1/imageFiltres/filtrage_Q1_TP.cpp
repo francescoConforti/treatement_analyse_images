@@ -18,6 +18,7 @@ using namespace cv;
 int DELAY_CAPTION = 1500;
 int DELAY_BLUR = 100;
 int MAX_KERNEL_LENGTH = 31;
+int SIZE = 3;
 
 Mat src; Mat dst;
 char window_name[] = "Smoothing Demo";
@@ -65,7 +66,7 @@ int main( int argc, char ** argv )
     //![blur]
     for ( int i = 1; i < MAX_KERNEL_LENGTH; i = i + 2 )
     {
-        blur( src, dst, Size( i, i ), Point(-1,-1) );
+        blur( src, dst, Size( SIZE, SIZE ), Point(-1,-1) );
         if( display_dst( DELAY_BLUR ) != 0 )
         {
             return 0;
@@ -82,7 +83,7 @@ int main( int argc, char ** argv )
     //![gaussianblur]
     for ( int i = 1; i < MAX_KERNEL_LENGTH; i = i + 2 )
     {
-        GaussianBlur( src, dst, Size( i, i ), 0, 0 );
+        GaussianBlur( src, dst, Size( SIZE, SIZE ), 0, 0 );
         if( display_dst( DELAY_BLUR ) != 0 )
         {
             return 0;
@@ -99,7 +100,7 @@ int main( int argc, char ** argv )
     //![medianblur]
     for ( int i = 1; i < MAX_KERNEL_LENGTH; i = i + 2 )
     {
-        medianBlur ( src, dst, i );
+        medianBlur ( src, dst, SIZE );
         if( display_dst( DELAY_BLUR ) != 0 )
         {
             return 0;
@@ -116,11 +117,12 @@ int main( int argc, char ** argv )
     //![bilateralfilter]
     for ( int i = 1; i < MAX_KERNEL_LENGTH; i = i + 2 )
     {
-        bilateralFilter ( src, dst, i, i*2, i/2 );
+        bilateralFilter ( src, dst, 30, 150, 150 );
         if( display_dst( DELAY_BLUR ) != 0 )
         {
             return 0;
         }
+        imwrite("./res/bilateral.png", dst);
     }
     //![bilateralfilter]
 

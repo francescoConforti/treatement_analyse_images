@@ -73,7 +73,7 @@ def fisher_wagner(line1, line2):
             print("Traces Matrix:")
             print(ops)
     return d[len(line1), len(line2)]
-print(fisher_wagner("ABV", "FV"))
+print(fisher_wagner("54545000101144", "54454444544000010000100144"))
 
 
 #print(fisher_wagner("ABCD", "DABC"))
