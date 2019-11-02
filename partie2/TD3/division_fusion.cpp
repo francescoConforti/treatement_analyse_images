@@ -1,3 +1,7 @@
+/************************************************************
+                            INACHEVÉ
+*************************************************************/
+
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgcodecs.hpp>
@@ -108,44 +112,3 @@ void generateTree(const Mat& img, GenericNode& node, int treshold){
     }
   }
 }
-
-/*
-class GenericNode{
-  private:
-    int minX, maxX, minY, maxY;
-    GenericNode children [4];
-    
-  public:
-    GenericNode(){}
-    GenericNode(int minX, int maxX, int minY, int maxY){
-      this->minX = minX;
-      this->maxX = maxX;
-      this->minY = minY;
-      this->maxY = maxY;
-    }
-    int getMinX(){
-      return minX;
-    }
-    int getMaxX(){
-      return maxX;
-    }
-    int getMinY(){
-      return minY;
-    }
-    int getmaxY(){
-      return maxY;
-    }
-};
-
-class quadTree{
-  private: GenericNode node;
-  
-  public:
-    quadTree(const GenericNode& root){
-      node = root;
-    }
-    GenericNode getRoot(){
-      return node;
-    }
-};
-*/
