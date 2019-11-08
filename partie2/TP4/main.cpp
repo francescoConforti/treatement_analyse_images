@@ -11,6 +11,7 @@ void erosion(const Mat src, Mat dst, const Mat element);
 bool inside_mat(const Mat src, int x, int y);
 void ouverture(const Mat src, Mat dst, const Mat element);
 void fermeture(const Mat src, Mat dst, const Mat element);
+void debuitage(const Mat src, Mat dst, const Mat element);
 
 int main( int argc, char** argv ){
   string imageName("lotus.png");
@@ -47,6 +48,9 @@ int main( int argc, char** argv ){
   imshow( window_modified, image_modified );
   waitKey(0);
   fermeture(image, image_modified, element);
+  imshow( window_modified, image_modified );
+  waitKey(0);
+  debuitage(image, image_modified, element);
   imshow( window_modified, image_modified );
   waitKey(0);
   return 0;
@@ -116,4 +120,10 @@ void fermeture(const Mat src, Mat dst, const Mat element){
   Mat tmp = Mat(src.size(), CV_8UC1, Scalar(0));
   dilatation(src, tmp, element);
   erosion(tmp, dst, element);
+}
+
+void debuitage(const Mat src, Mat dst, const Mat element){
+  Mat tmp = Mat(src.size(), CV_8UC1, Scalar(0));
+  ouverture(src, tmp, element);
+  fermeture(tmp, dst, element);
 }
