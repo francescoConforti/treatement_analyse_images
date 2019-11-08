@@ -7,6 +7,7 @@ using namespace cv;
 using namespace std;
 
 void dilatation(const Mat src, Mat dst, const Mat element);
+void erosion(const Mat src, Mat dst, const Mat element);
 bool inside_mat(const Mat src, int x, int y);
 
 int main( int argc, char** argv ){
@@ -33,11 +34,9 @@ int main( int argc, char** argv ){
   element.at<uchar>(0,2)=0;
   
   dilatation(image, image_modified, element);
-  namedWindow( window_name, WINDOW_AUTOSIZE );
-  imshow( window_name, image );
-  namedWindow( window_modified, WINDOW_AUTOSIZE );
-  imshow( window_modified, image_modified );
-  waitKey(0);
+  imwrite("dilatation.png", image_modified);
+  erosion(image, image_modified, element);
+  imwrite("erosion.png", image_modified);
   return 0;
 }
 
@@ -60,6 +59,29 @@ void dilatation(const Mat src, Mat dst, const Mat element){
         }
       }
       dst.at<uchar>(j, i) = max;
+    }
+  }
+}
+
+void erosion(const Mat src, Mat dst, const Mat element){
+  int xcentre = element.size().width / 2;
+  int ycentre = element.size().height / 2;
+  for(int i=0; i < src.size().width; ++i){
+    for(int j=0; j < src.size().height; ++j){
+      int min = 256;
+      for(int k=0; k < element.size().width; ++k){
+        for(int h=0; h < element.size().height; ++h){
+          int xpos = i+k-xcentre;
+          int ypos = j+h-ycentre;
+          if(inside_mat(src, xpos, ypos)){
+            uchar intensity = src.at<uchar>(ypos, xpos);
+            if(intensity < min){
+              min = intensity;
+            }
+          }
+        }
+      }
+      dst.at<uchar>(j, i) = min;
     }
   }
 }
