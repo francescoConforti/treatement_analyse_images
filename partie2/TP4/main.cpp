@@ -9,6 +9,8 @@ using namespace std;
 void dilatation(const Mat src, Mat dst, const Mat element);
 void erosion(const Mat src, Mat dst, const Mat element);
 bool inside_mat(const Mat src, int x, int y);
+void ouverture(const Mat src, Mat dst, const Mat element);
+void fermeture(const Mat src, Mat dst, const Mat element);
 
 int main( int argc, char** argv ){
   string imageName("lotus.png");
@@ -37,6 +39,16 @@ int main( int argc, char** argv ){
   imwrite("dilatation.png", image_modified);
   erosion(image, image_modified, element);
   imwrite("erosion.png", image_modified);
+  
+  ouverture(image, image_modified, element);
+  namedWindow( window_name, WINDOW_AUTOSIZE );
+  imshow( window_name, image );
+  namedWindow( window_modified, WINDOW_AUTOSIZE );
+  imshow( window_modified, image_modified );
+  waitKey(0);
+  fermeture(image, image_modified, element);
+  imshow( window_modified, image_modified );
+  waitKey(0);
   return 0;
 }
 
@@ -92,4 +104,16 @@ bool inside_mat(const Mat mat, int x, int y){
     return false;
    }
    return true;
+}
+
+void ouverture(const Mat src, Mat dst, const Mat element){
+  Mat tmp = Mat(src.size(), CV_8UC1, Scalar(0));
+  erosion(src, tmp, element);
+  dilatation(tmp, dst, element);
+}
+
+void fermeture(const Mat src, Mat dst, const Mat element){
+  Mat tmp = Mat(src.size(), CV_8UC1, Scalar(0));
+  dilatation(src, tmp, element);
+  erosion(tmp, dst, element);
 }
