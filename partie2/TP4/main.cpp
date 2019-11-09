@@ -12,9 +12,12 @@ bool inside_mat(const Mat src, int x, int y);
 void ouverture(const Mat src, Mat dst, const Mat element);
 void fermeture(const Mat src, Mat dst, const Mat element);
 void debuitage(const Mat src, Mat dst, const Mat element);
+void gradient_interne(const Mat src, Mat dst, const Mat element);
+void gradient_externe(const Mat src, Mat dst, const Mat element);
+void gradient_morphologique(const Mat src, Mat dst, const Mat element);
 
 int main( int argc, char** argv ){
-  string imageName("lotus.png");
+  string imageName("tree.png");
   string window_name("image_originale");
   string window_modified("image_modified");
   if( argc > 1)
@@ -41,16 +44,25 @@ int main( int argc, char** argv ){
   erosion(image, image_modified, element);
   imwrite("erosion.png", image_modified);
   
-  ouverture(image, image_modified, element);
+  //ouverture(image, image_modified, element);
   namedWindow( window_name, WINDOW_AUTOSIZE );
   imshow( window_name, image );
   namedWindow( window_modified, WINDOW_AUTOSIZE );
-  imshow( window_modified, image_modified );
+  /*imshow( window_modified, image_modified );
   waitKey(0);
   fermeture(image, image_modified, element);
   imshow( window_modified, image_modified );
   waitKey(0);
   debuitage(image, image_modified, element);
+  imshow( window_modified, image_modified );
+  waitKey(0);*/
+  gradient_interne(image, image_modified, element);
+  imshow( window_modified, image_modified );
+  waitKey(0);
+  gradient_externe(image, image_modified, element);
+  imshow( window_modified, image_modified );
+  waitKey(0);
+  gradient_morphologique(image, image_modified, element);
   imshow( window_modified, image_modified );
   waitKey(0);
   return 0;
@@ -126,4 +138,42 @@ void debuitage(const Mat src, Mat dst, const Mat element){
   Mat tmp = Mat(src.size(), CV_8UC1, Scalar(0));
   ouverture(src, tmp, element);
   fermeture(tmp, dst, element);
+}
+
+void gradient_interne(const Mat src, Mat dst, const Mat element){
+  Mat tmp = Mat(src.size(), CV_8UC1, Scalar(0));
+  erosion(src, tmp, element);
+  for(int i=0; i < src.size().width; ++i){
+    for(int j=0; j < src.size().height; ++j){
+      uchar intensity_original = src.at<uchar>(j, i);
+      uchar intensity_tmp = tmp.at<uchar>(j, i);
+      dst.at<uchar>(j, i) = intensity_original - intensity_tmp;
+    }
+  }
+}
+
+void gradient_externe(const Mat src, Mat dst, const Mat element){
+  Mat tmp = Mat(src.size(), CV_8UC1, Scalar(0));
+  dilatation(src, tmp, element);
+  for(int i=0; i < src.size().width; ++i){
+    for(int j=0; j < src.size().height; ++j){
+      uchar intensity_tmp = tmp.at<uchar>(j, i);
+      uchar intensity_original = src.at<uchar>(j, i);
+      dst.at<uchar>(j, i) = intensity_tmp - intensity_original;
+    }
+  }
+}
+
+void gradient_morphologique(const Mat src, Mat dst, const Mat element){
+  Mat tmp_dilatation = Mat(src.size(), CV_8UC1, Scalar(0));
+  Mat tmp_erosion = Mat(src.size(), CV_8UC1, Scalar(0));
+  dilatation(src, tmp_dilatation, element);
+  erosion(src, tmp_erosion, element);
+  for(int i=0; i < src.size().width; ++i){
+    for(int j=0; j < src.size().height; ++j){
+      uchar intensity_dilatation = tmp_dilatation.at<uchar>(j, i);
+      uchar intensity_erosion = tmp_erosion.at<uchar>(j, i);
+      dst.at<uchar>(j, i) = intensity_dilatation- intensity_erosion;
+    }
+  }
 }
