@@ -1,12 +1,9 @@
-CXX = g++ -Wall -std=c++0x
-CXXFLAGS = -g -Wall -O2
+FILES = grabcut main
 LDFLAGS = `pkg-config --cflags --libs opencv`
 
-TARGET = main
-SOURCE = $(TARGET).cpp
+all: main
 
-TARGET:
-	$(CXX) -o $(TARGET) $(SOURCE) $(CXXFLAGS) $(LDFLAGS)
+main: 
+	g++ -Wall -o main treshold.cpp main.cpp $(LDFLAGS)
 
-clean:
-	rm -f *.o *~ $(TARGET)
+
