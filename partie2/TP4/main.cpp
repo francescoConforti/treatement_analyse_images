@@ -1,10 +1,4 @@
-#include <opencv2/opencv.hpp>
-#include <opencv2/core/core.hpp>
-#include <opencv2/imgcodecs.hpp>
-#include <opencv2/highgui/highgui.hpp>
-
-using namespace cv;
-using namespace std;
+#include "./treshold.h"
 
 void dilatation(const Mat src, Mat dst, const Mat element);
 void erosion(const Mat src, Mat dst, const Mat element);
@@ -15,6 +9,7 @@ void debuitage(const Mat src, Mat dst, const Mat element);
 void gradient_interne(const Mat src, Mat dst, const Mat element);
 void gradient_externe(const Mat src, Mat dst, const Mat element);
 void gradient_morphologique(const Mat src, Mat dst, const Mat element);
+Mat minima(const Mat gradient);
 
 int main( int argc, char** argv ){
   string imageName("tree.png");
@@ -55,7 +50,7 @@ int main( int argc, char** argv ){
   waitKey(0);
   debuitage(image, image_modified, element);
   imshow( window_modified, image_modified );
-  waitKey(0);*/
+  waitKey(0);
   gradient_interne(image, image_modified, element);
   imshow( window_modified, image_modified );
   waitKey(0);
@@ -64,6 +59,10 @@ int main( int argc, char** argv ){
   waitKey(0);
   gradient_morphologique(image, image_modified, element);
   imshow( window_modified, image_modified );
+  waitKey(0);*/
+  
+  gradient_morphologique(image, image_modified, element);
+  imshow( window_modified, minima(image_modified) );
   waitKey(0);
   return 0;
 }
@@ -176,4 +175,16 @@ void gradient_morphologique(const Mat src, Mat dst, const Mat element){
       dst.at<uchar>(j, i) = intensity_dilatation- intensity_erosion;
     }
   }
+}
+
+// TODO: improve
+Mat minima(const Mat gradient){
+  Mat tmp = Mat(gradient.size(), CV_8UC1, Scalar(0));
+  Mat marqueur = Mat(gradient.size(), CV_32S, Scalar(0,0,0));  // 32S gives exception
+  vector<vector<Point> > contours;
+  Mat copy = gradient;
+  seuillage(gradient, tmp, -1);
+  findContours(tmp, contours, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
+  drawContours(marqueur, contours, -1, Scalar(255, 255, 255), -1);
+  return marqueur;
 }
