@@ -10,6 +10,7 @@ void gradient_interne(const Mat src, Mat dst, const Mat element);
 void gradient_externe(const Mat src, Mat dst, const Mat element);
 void gradient_morphologique(const Mat src, Mat dst, const Mat element);
 Mat minima(const Mat gradient);
+Mat lignePartegeEaux(const Mat src, const Mat element, string imageName);
 
 int main( int argc, char** argv ){
   string imageName("tree.png");
@@ -61,8 +62,8 @@ int main( int argc, char** argv ){
   imshow( window_modified, image_modified );
   waitKey(0);*/
   
-  gradient_morphologique(image, image_modified, element);
-  imshow( window_modified, minima(image_modified) );
+  image_modified = lignePartegeEaux(image, element, imageName);
+  imshow( window_modified, image_modified);
   waitKey(0);
   return 0;
 }
@@ -180,11 +181,65 @@ void gradient_morphologique(const Mat src, Mat dst, const Mat element){
 // TODO: improve
 Mat minima(const Mat gradient){
   Mat tmp = Mat(gradient.size(), CV_8UC1, Scalar(0));
-  Mat marqueur = Mat(gradient.size(), CV_32S, Scalar(0,0,0));  // 32S gives exception
+  Mat marqueur = Mat(gradient.size(), CV_32SC1, Scalar(0,0,0));
   vector<vector<Point> > contours;
-  Mat copy = gradient;
   seuillage(gradient, tmp, -1);
-  findContours(tmp, contours, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
+  
+  Mat dist;
+  distanceTransform(tmp, dist, DIST_L2, 3);
+  normalize(dist, dist, 0, 1.0, NORM_MINMAX);
+  Mat dist_8u;
+  dist.convertTo(dist_8u, CV_8U);
+  
+  //findContours(tmp, contours, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
+  //drawContours(marqueur, contours, -1, Scalar(255, 255, 255), -1);
+  findContours(dist_8u, contours, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
   drawContours(marqueur, contours, -1, Scalar(255, 255, 255), -1);
   return marqueur;
+}
+
+Mat lignePartegeEaux(const Mat src, const Mat element, string imageName){
+  Mat marker, srcColor;
+  cvtColor(src, srcColor, COLOR_GRAY2RGB);
+  vector<Vec3b> colorTab;
+  Mat gradient = Mat(src.size(), CV_8UC1, Scalar(0));
+  gradient_morphologique(src, gradient, element);
+  
+  Mat tmp = Mat(gradient.size(), CV_8UC1, Scalar(0));
+  Mat marqueur = Mat(gradient.size(), CV_32SC1, Scalar(0,0,0));
+  vector<vector<Point> > contours;
+  seuillage(gradient, tmp, -1);
+  Mat dist;
+  distanceTransform(tmp, dist, DIST_L2, 3);
+  normalize(dist, dist, 0, 1.0, NORM_MINMAX);
+  Mat dist_8u;
+  dist.convertTo(dist_8u, CV_8U);
+  findContours(dist_8u, contours, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
+  for (size_t i = 0; i < contours.size(); i++){
+    drawContours(marqueur, contours, static_cast<int>(i), Scalar(static_cast<int>(i)+1), -1);
+  }
+  
+  watershed(srcColor, marqueur);
+  //marqueur.convertTo(marker, CV_8U);
+  vector<Vec3b> colors;
+  for (unsigned int i = 0; i < contours.size(); i++){
+    int b = theRNG().uniform(0, 255);
+    int g = theRNG().uniform(0, 255);
+    int r = theRNG().uniform(0, 255);
+    colors.push_back(Vec3b((uchar)b, (uchar)g, (uchar)r));
+  }
+  // Create the result image
+  Mat dst = Mat::zeros(marqueur.size(), CV_8UC3);
+  // Fill labeled objects with random colors
+  for (int i = 0; i < marqueur.size().width; ++i){
+    for (int j = 0; j < marqueur.size().height; ++j){
+      int index = marqueur.at<int>(j,i);
+      if(index == -1){
+        dst.at<Vec3b>(j,i) = Vec3b(0, 0, 0);
+      }else{
+        dst.at<Vec3b>(j,i) = colors[index-1];
+      }
+    }
+  }
+  return dst;
 }
