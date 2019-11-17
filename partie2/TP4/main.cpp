@@ -178,22 +178,13 @@ void gradient_morphologique(const Mat src, Mat dst, const Mat element){
   }
 }
 
-// TODO: improve
 Mat minima(const Mat gradient){
   Mat tmp = Mat(gradient.size(), CV_8UC1, Scalar(0));
   Mat marqueur = Mat(gradient.size(), CV_32SC1, Scalar(0,0,0));
   vector<vector<Point> > contours;
   seuillage(gradient, tmp, -1);
   
-  Mat dist;
-  distanceTransform(tmp, dist, DIST_L2, 3);
-  normalize(dist, dist, 0, 1.0, NORM_MINMAX);
-  Mat dist_8u;
-  dist.convertTo(dist_8u, CV_8U);
-  
-  //findContours(tmp, contours, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
-  //drawContours(marqueur, contours, -1, Scalar(255, 255, 255), -1);
-  findContours(dist_8u, contours, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
+  findContours(tmp, contours, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
   drawContours(marqueur, contours, -1, Scalar(255, 255, 255), -1);
   return marqueur;
 }
@@ -205,6 +196,8 @@ Mat lignePartegeEaux(const Mat src, const Mat element, string imageName){
   Mat gradient = Mat(src.size(), CV_8UC1, Scalar(0));
   gradient_morphologique(src, gradient, element);
   
+  // this part substitutes the function minima; in here also
+  // distanceTransform and normalize are calculated
   Mat tmp = Mat(gradient.size(), CV_8UC1, Scalar(0));
   Mat marqueur = Mat(gradient.size(), CV_32SC1, Scalar(0,0,0));
   vector<vector<Point> > contours;
@@ -220,7 +213,8 @@ Mat lignePartegeEaux(const Mat src, const Mat element, string imageName){
   }
   
   watershed(srcColor, marqueur);
-  //marqueur.convertTo(marker, CV_8U);
+  Mat dst = Mat::zeros(marqueur.size(), CV_8UC3);
+  
   vector<Vec3b> colors;
   for (unsigned int i = 0; i < contours.size(); i++){
     int b = theRNG().uniform(0, 255);
@@ -228,9 +222,6 @@ Mat lignePartegeEaux(const Mat src, const Mat element, string imageName){
     int r = theRNG().uniform(0, 255);
     colors.push_back(Vec3b((uchar)b, (uchar)g, (uchar)r));
   }
-  // Create the result image
-  Mat dst = Mat::zeros(marqueur.size(), CV_8UC3);
-  // Fill labeled objects with random colors
   for (int i = 0; i < marqueur.size().width; ++i){
     for (int j = 0; j < marqueur.size().height; ++j){
       int index = marqueur.at<int>(j,i);
