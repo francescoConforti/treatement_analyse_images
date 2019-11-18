@@ -1,8 +1,3 @@
-/* ***********************************************
- *      bisogna invertire il valore delle immagini:
- *      la figura è a 0 e il resto != 0
- * ***************************************************/
-
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgcodecs.hpp>
@@ -17,10 +12,16 @@ using namespace std;
 Mat DT8_chanfrein(const Mat src);
 void printInTerminal(const Mat image);
 Mat invertImage(const Mat src);
+bool insideMatrix(const Mat src, int y, int x);
+void forwardPass(const Mat src, Mat dst, const Mat mask);
+void backwardPass(const Mat src, Mat dst, const Mat mask);
+void normalizeChanfrein(Mat img);
 
+string window_modified("image modified");
+int WAITTIME = 10;
+  
 int main( int argc, char** argv ){
   string window_name("image originale");
-  string window_modified("image modified");
   string imageName("disque.pgm");
   if( argc > 1){
     imageName = argv[1];
@@ -32,17 +33,62 @@ int main( int argc, char** argv ){
     return -1;
   }
   
+  namedWindow( window_modified, WINDOW_AUTOSIZE );
   Mat modified = DT8_chanfrein(image);
   imwrite("inverted.pgm", modified);
-  /*namedWindow( window_name, WINDOW_AUTOSIZE );  // Create a window for display.
-  imshow( window_name, image );
-  waitKey(0);*/
+  imshow( window_modified, modified );
+  waitKey(0);
 }
 
 Mat DT8_chanfrein(const Mat src){
-  Mat res = invertImage(src); // initialization
-  // centro la maschera sul centro (0) e per tutti i punti intorno faccio il min della somma
+  Mat inverted = invertImage(src); // initialization
+  Mat res = inverted;
+  Mat mask = Mat(Size(3,3), CV_8UC1, Scalar(1));
+  mask.at<uchar>(1, 1) = 0;
+  forwardPass(inverted, res, mask);
+  backwardPass(inverted, res, mask);
+  normalizeChanfrein(res);
   return res;
+}
+
+void forwardPass(const Mat src, Mat dst, const Mat mask){
+  for(int j=0; j < src.size().height; ++j){
+    for(int i=0; i < src.size().width; ++i){
+      for(int h=0; h < mask.size().height; ++h){
+        for(int k=0; k < mask.size().width-1; ++k){  // last row is not in half-mask
+          if(h<=k && insideMatrix(src, j+h, i+k)){  // take only left portion of the matrix
+            int candidateValue = dst.at<uchar>(j+h-(mask.size().height / 2), i+k-(mask.size().width / 2))
+                                  + mask.at<uchar>(h, k);
+            cout << i << " " << j << " " <<  candidateValue << "\n";
+            imshow(window_modified, dst);
+            waitKey(WAITTIME);
+            if(candidateValue < dst.at<uchar>(j, i) && candidateValue <= 255)  // prevent overflow in uchar
+              dst.at<uchar>(j, i) = candidateValue;
+          }
+        }
+      }
+    }
+  }
+}
+
+void backwardPass(const Mat src, Mat dst, const Mat mask){
+  for(int j = src.size().height - 1; j >= 0 ; --j){
+    for(int i = src.size().width - 1; i >= 0 ; --i){
+      for(int h=0; h < mask.size().height; ++h){
+        for(int k=1; k < mask.size().width; ++k){  // first row is not in half-mask
+          if(k<=h && insideMatrix(src, j+h, i+k)){  // take only right portion of the matrix
+            int candidateValue = dst.at<uchar>(j+h-(mask.size().height / 2), i+k-(mask.size().width / 2))
+                                  + mask.at<uchar>(h, k);
+            cout << i << " " << j << " " <<  candidateValue << "\n";
+            imshow(window_modified, dst);
+            waitKey(WAITTIME);
+            if(candidateValue < dst.at<uchar>(j, i) && candidateValue <= 255)  // prevent overflow in uchar
+              dst.at<uchar>(j, i) = candidateValue;
+          }
+        }
+      }
+    }
+  }
 }
 
 Mat invertImage(const Mat src){
@@ -67,4 +113,27 @@ void printInTerminal(const Mat image){
     }
     cout << "\n";
   }  
+}
+
+bool insideMatrix(const Mat src, int y, int x){
+  return y >= 0 && y < src.size().height && x >= 0 && x < src.size().width;
+}
+
+void normalizeChanfrein(Mat img){
+  int max = 0;
+  for(int i=0; i < img.size().width; ++i){
+    for(int j=0; j < img.size().height; ++j){
+      if(img.at<uchar>(j, i) == 255){
+        img.at<uchar>(j, i) = 0;
+      }else if(img.at<uchar>(j, i) > max){
+        max = img.at<uchar>(j, i);
+      }
+    }
+  }
+  float scaleFactor = 255.0 / max;
+  for(int i=0; i < img.size().width; ++i){
+    for(int j=0; j < img.size().height; ++j){
+      img.at<uchar>(j, i) = img.at<uchar>(j, i) * scaleFactor;
+    }
+  }
 }
