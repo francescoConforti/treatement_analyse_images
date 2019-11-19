@@ -18,7 +18,7 @@ void backwardPass(const Mat src, Mat dst, const Mat mask);
 void normalizeChanfrein(Mat img);
 
 string window_modified("image modified");
-int WAITTIME = 10;
+int WAITTIME = 5;
   
 int main( int argc, char** argv ){
   string window_name("image originale");
@@ -54,12 +54,12 @@ Mat DT8_chanfrein(const Mat src){
 void forwardPass(const Mat src, Mat dst, const Mat mask){
   for(int j=0; j < src.size().height; ++j){
     for(int i=0; i < src.size().width; ++i){
-      for(int h=0; h < mask.size().height; ++h){
-        for(int k=0; k < mask.size().width-1; ++k){  // last row is not in half-mask
-          if(h<=k && insideMatrix(src, j+h, i+k)){  // take only left portion of the matrix
+      for(int k=0; k < mask.size().width; ++k){
+        for(int h=0; k+h < mask.size().width && h < mask.size().height-1; ++h){  // last row is not in half-mask; take only left portion of the matrix
+          if(insideMatrix(src, j+h-(mask.size().height / 2), i+k-(mask.size().width / 2))){
             int candidateValue = dst.at<uchar>(j+h-(mask.size().height / 2), i+k-(mask.size().width / 2))
                                   + mask.at<uchar>(h, k);
-            cout << i << " " << j << " " <<  candidateValue << "\n";
+            cout << j << " " << i << " " <<  candidateValue << "\n";
             imshow(window_modified, dst);
             waitKey(WAITTIME);
             if(candidateValue < dst.at<uchar>(j, i) && candidateValue <= 255)  // prevent overflow in uchar
@@ -74,12 +74,12 @@ void forwardPass(const Mat src, Mat dst, const Mat mask){
 void backwardPass(const Mat src, Mat dst, const Mat mask){
   for(int j = src.size().height - 1; j >= 0 ; --j){
     for(int i = src.size().width - 1; i >= 0 ; --i){
-      for(int h=0; h < mask.size().height; ++h){
-        for(int k=1; k < mask.size().width; ++k){  // first row is not in half-mask
-          if(k<=h && insideMatrix(src, j+h, i+k)){  // take only right portion of the matrix
+      for(int h=1; h < mask.size().height; ++h){  // first row is not in half-mask
+        for(int k=0; k < mask.size().width; ++k){
+          if(h >= mask.size().width -1 -k && insideMatrix(src, j+h-(mask.size().height / 2), i+k-(mask.size().width / 2))){  // take only right portion of the matrix
             int candidateValue = dst.at<uchar>(j+h-(mask.size().height / 2), i+k-(mask.size().width / 2))
                                   + mask.at<uchar>(h, k);
-            cout << i << " " << j << " " <<  candidateValue << "\n";
+            cout << j << " " << i << " " <<  candidateValue << "\n";
             imshow(window_modified, dst);
             waitKey(WAITTIME);
             if(candidateValue < dst.at<uchar>(j, i) && candidateValue <= 255)  // prevent overflow in uchar
