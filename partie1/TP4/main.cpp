@@ -10,6 +10,7 @@ using namespace cv;
 using namespace std;
 
 Mat DT8_chanfrein(const Mat src);
+Mat DT4_chanfrein(const Mat src);
 void printInTerminal(const Mat image);
 Mat invertImage(const Mat src);
 bool insideMatrix(const Mat src, int y, int x);
@@ -18,7 +19,7 @@ void backwardPass(const Mat src, Mat dst, const Mat mask);
 void normalizeChanfrein(Mat img);
 
 string window_modified("image modified");
-int WAITTIME = 5;
+int WAITTIME = 2;
   
 int main( int argc, char** argv ){
   string window_name("image originale");
@@ -33,8 +34,11 @@ int main( int argc, char** argv ){
     return -1;
   }
   
+  namedWindow(window_name, WINDOW_AUTOSIZE);
+  imshow(window_name, image);
   namedWindow( window_modified, WINDOW_AUTOSIZE );
-  Mat modified = DT8_chanfrein(image);
+  //Mat modified = DT8_chanfrein(image);
+  Mat modified = DT4_chanfrein(image);
   imwrite("inverted.pgm", modified);
   imshow( window_modified, modified );
   waitKey(0);
@@ -45,6 +49,19 @@ Mat DT8_chanfrein(const Mat src){
   Mat res = inverted;
   Mat mask = Mat(Size(3,3), CV_8UC1, Scalar(1));
   mask.at<uchar>(1, 1) = 0;
+  forwardPass(inverted, res, mask);
+  backwardPass(inverted, res, mask);
+  normalizeChanfrein(res);
+  return res;
+}
+
+Mat DT4_chanfrein(const Mat src){
+  Mat inverted = invertImage(src); // initialization
+  Mat res = inverted;
+  Mat mask = Mat(Size(3,3), CV_8UC1, Scalar(1));
+  mask.at<uchar>(1, 1) = 0;
+  // assign max value to the corners (wich should not be calculated)
+  mask.at<uchar>(0, 0) = mask.at<uchar>(2, 2) = mask.at<uchar>(2, 0) = mask.at<uchar>(0, 2) = 255;
   forwardPass(inverted, res, mask);
   backwardPass(inverted, res, mask);
   normalizeChanfrein(res);
