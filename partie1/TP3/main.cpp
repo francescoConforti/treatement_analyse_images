@@ -17,7 +17,8 @@ bool insideMatrix(const Mat src, int y, int x);
 void forwardPass(const Mat src, Mat dst, const Mat mask);
 void backwardPass(const Mat src, Mat dst, const Mat mask);
 void normalizeChanfrein(Mat img);
-Mat axeMedian(const Mat dau);
+Mat axeMedian_DT8(const Mat dau);
+Mat axeMedian_DT4(const Mat dau);
 
 string window_modified("image modified");
 int WAITTIME = 2;
@@ -42,8 +43,10 @@ int main( int argc, char** argv ){
   Mat distanceAuFond = DT4_chanfrein(image);
   imwrite("distanceAuFond.pgm", distanceAuFond);
   imshow( window_modified, distanceAuFond );
+  //printInTerminal(distanceAuFond);
   waitKey(0);
-  Mat axe = axeMedian(distanceAuFond);
+  //Mat axe = axeMedian_DT8(distanceAuFond);
+  Mat axe = axeMedian_DT4(distanceAuFond);
   imshow( window_modified, axe );
   waitKey(0);
 }
@@ -130,7 +133,8 @@ Mat invertImage(const Mat src){
 void printInTerminal(const Mat image){
   for(int j=0; j < image.size().height; ++j){
     for(int i=0; i < image.size().width; ++i){
-      cout << image.at<uchar>(j, i) << " ";
+      int val = image.at<uchar>(j, i);
+      cout << val << " ";
     }
     cout << "\n";
   }  
@@ -160,7 +164,7 @@ void normalizeChanfrein(Mat img){
 }
 
 // dau is distance au fond
-Mat axeMedian(const Mat dau){
+Mat axeMedian_DT8(const Mat dau){
   Mat res = Mat(dau.size(), CV_8UC1, Scalar(255));
   for(int i=0; i < dau.size().width; ++i){
     for(int j=0; j < dau.size().height; ++j){
@@ -173,7 +177,7 @@ Mat axeMedian(const Mat dau){
           }
         }
       }
-      if(numBigger != 1){
+      if(numBigger > 0 || pixelVal < 2){
         res.at<uchar>(j,i) = 0;
       }
     }
@@ -181,35 +185,23 @@ Mat axeMedian(const Mat dau){
   return res;
 }
 
-// dau is distance au fond
-/*Mat axeMedian(const Mat dau){
-  uchar maxVal = 0;
-  Point max = Point(0,0);
+Mat axeMedian_DT4(const Mat dau){
+  Mat res = Mat(dau.size(), CV_8UC1, Scalar(255));
   for(int i=0; i < dau.size().width; ++i){
     for(int j=0; j < dau.size().height; ++j){
-      if(dau.at<uchar>(j,i) > max){
-        maxVal = dau.at<uchar>(j,i);
-        max = Point(i,j);
-      }
-    }
-  }
-  Mat res = Mat(dau.size(), CV_8UC1, Scalar(0));
-  vector<Point> axe;
-  axe.push_back(max);
-  while(!axe.empty()){
-    vector<Point> voisinage;
-    Point p = axe.back();
-    axe.pop_back();
-    res.at<uchar>(p.y, p.x) = 255;
-    for(int i=-1; i<3; ++i){
-      for(int j=-1; j<3; ++j){
-        if((j!=0 && i!=0) && insideMatrix(dau, p.y + j, p.x + i)){
-          voisinage.push_back(Point(p.y + j, p.x + i));
+      uchar pixelVal = dau.at<uchar>(j,i);
+      int numBigger = 0;
+      for(int k=-1; k<3; ++k){
+        for(int h=-1; h<3; ++h){
+          if(insideMatrix(dau, j+h, i+k) && dau.at<uchar>(j+h, i+k) > pixelVal){
+            ++numBigger;
+          }
         }
       }
+      if(numBigger > 1 || pixelVal < 2){
+        res.at<uchar>(j,i) = 0;
+      }
     }
-    sort(voisinage.begin(), voisinage.end());
-    voisinage.pop_back();
-    axe.push_back(voisinage.back());  // i take the second because the first is the original point
   }
-}*/
+  return res;
+}
