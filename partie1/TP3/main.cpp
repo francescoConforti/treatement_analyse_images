@@ -19,6 +19,12 @@ void backwardPass(const Mat src, Mat dst, const Mat mask);
 void normalizeChanfrein(Mat img);
 Mat axeMedian_DT8(const Mat dau);
 Mat axeMedian_DT4(const Mat dau);
+int yokoi_DT4(const Mat img, int y, int x);
+int yokoi_DT8(const Mat img, int y, int x);
+int isForeground(uchar pixelValue);
+bool isSimpleMinPoint(const Mat img, int y, int x, bool DT8);
+void reduceDistanceVal(Mat mat);
+Mat skeletonization(const Mat dau, bool DT8);
 
 string window_modified("image modified");
 int WAITTIME = 2;
@@ -39,15 +45,19 @@ int main( int argc, char** argv ){
   namedWindow(window_name, WINDOW_AUTOSIZE);
   imshow(window_name, image);
   namedWindow( window_modified, WINDOW_AUTOSIZE );
-  //Mat distanceAuFond = DT8_chanfrein(image);
-  Mat distanceAuFond = DT4_chanfrein(image);
+  Mat distanceAuFond = DT8_chanfrein(image);
+  //Mat distanceAuFond = DT4_chanfrein(image);
   imwrite("distanceAuFond.pgm", distanceAuFond);
   imshow( window_modified, distanceAuFond );
   //printInTerminal(distanceAuFond);
   waitKey(0);
-  //Mat axe = axeMedian_DT8(distanceAuFond);
-  Mat axe = axeMedian_DT4(distanceAuFond);
+  Mat axe = axeMedian_DT8(distanceAuFond);
+  //Mat axe = axeMedian_DT4(distanceAuFond);
   imshow( window_modified, axe );
+  waitKey(0);
+  bool DT8 = true;
+  Mat skel = skeletonization(distanceAuFond, DT8);
+  imshow( window_modified, skel );
   waitKey(0);
 }
 
@@ -83,9 +93,9 @@ void forwardPass(const Mat src, Mat dst, const Mat mask){
           if(insideMatrix(src, j+h-(mask.size().height / 2), i+k-(mask.size().width / 2))){
             int candidateValue = dst.at<uchar>(j+h-(mask.size().height / 2), i+k-(mask.size().width / 2))
                                   + mask.at<uchar>(h, k);
-            cout << j << " " << i << " " <<  candidateValue << "\n";
+            /*cout << j << " " << i << " " <<  candidateValue << "\n";
             imshow(window_modified, dst);
-            //waitKey(WAITTIME);
+            waitKey(WAITTIME);*/
             if(candidateValue < dst.at<uchar>(j, i) && candidateValue <= 255)  // prevent overflow in uchar
               dst.at<uchar>(j, i) = candidateValue;
           }
@@ -103,9 +113,9 @@ void backwardPass(const Mat src, Mat dst, const Mat mask){
           if(h >= mask.size().width -1 -k && insideMatrix(src, j+h-(mask.size().height / 2), i+k-(mask.size().width / 2))){  // take only right portion of the matrix
             int candidateValue = dst.at<uchar>(j+h-(mask.size().height / 2), i+k-(mask.size().width / 2))
                                   + mask.at<uchar>(h, k);
-            cout << j << " " << i << " " <<  candidateValue << "\n";
+            /*cout << j << " " << i << " " <<  candidateValue << "\n";
             imshow(window_modified, dst);
-            //waitKey(WAITTIME);
+            waitKey(WAITTIME);*/
             if(candidateValue < dst.at<uchar>(j, i) && candidateValue <= 255)  // prevent overflow in uchar
               dst.at<uchar>(j, i) = candidateValue;
           }
@@ -204,4 +214,118 @@ Mat axeMedian_DT4(const Mat dau){
     }
   }
   return res;
+}
+
+int yokoi_DT4(const Mat img, int y, int x){
+  if(!insideMatrix(img, y-1, x-1) || !insideMatrix(img, y+1, x+1)){
+    return 1;
+  }
+  int x0 = isForeground(img.at<uchar>(y-1, x));
+  int x1 = isForeground(img.at<uchar>(y-1, x+1));
+  int x2 = isForeground(img.at<uchar>(y, x+1));
+  int x3 = isForeground(img.at<uchar>(y+1, x+1));
+  int x4 = isForeground(img.at<uchar>(y+1, x));
+  int x5 = isForeground(img.at<uchar>(y+1, x-1));
+  int x6 = isForeground(img.at<uchar>(y, x-1));
+  int x7 = isForeground(img.at<uchar>(y-1, x-1));
+  int x8 = x0;
+  return x0 * (1 - x1 * x2) +
+         x2 * (1 - x3 * x4) +
+         x4 * (1 - x5 * x6) +
+         x6 * ( 1 - x7 * x8);
+}
+
+int yokoi_DT8(const Mat img, int y, int x){
+  if(!insideMatrix(img, y-1, x-1) || !insideMatrix(img, y+1, x+1)){
+    return 1;
+  }
+  int x0 = 1 - isForeground(img.at<uchar>(y-1, x));
+  int x1 = 1 - isForeground(img.at<uchar>(y-1, x+1));
+  int x2 = 1 - isForeground(img.at<uchar>(y, x+1));
+  int x3 = 1 - isForeground(img.at<uchar>(y+1, x+1));
+  int x4 = 1 - isForeground(img.at<uchar>(y+1, x));
+  int x5 = 1 - isForeground(img.at<uchar>(y+1, x-1));
+  int x6 = 1 - isForeground(img.at<uchar>(y, x-1));
+  int x7 = 1 - isForeground(img.at<uchar>(y-1, x-1));
+  int x8 = x0;
+  return x0 * (1 - x1 * x2) +
+         x2 * (1 - x3 * x4) +
+         x4 * (1 - x5 * x6) +
+         x6 * ( 1 - x7 * x8);
+}
+
+// returns 1 if foreground or 0 if background
+int isForeground(uchar pixelValue){
+  if(pixelValue > 0){
+    return 1;
+  } else{
+    return 0;
+  }
+}
+
+bool isSimpleMinPoint(const Mat img, int y, int x, bool DT8){
+  bool res;
+  if(img.at<uchar>(y,x) < 2){ // not minimal
+    res = false;
+  } else{
+    if(DT8){
+      res = yokoi_DT8(img, y, x);
+    } else{
+      res = yokoi_DT4(img, y, x);
+    }
+  }
+  return res;
+}
+
+void reduceDistanceVal(Mat mat){
+  for(int i=0; i < mat.size().width; ++i){
+    for(int j=0; j < mat.size().height; ++j){
+      uchar val = mat.at<uchar>(j,i);
+      if(val > 1){
+        mat.at<uchar>(j,i) = val - 1;
+      }
+    }
+  }
+}
+
+Mat skeletonization(const Mat dau, bool DT8){
+  Mat skel = dau;
+  vector<Point> simples;
+  for(int i=0; i < dau.size().width; ++i){
+    for(int j=0; j < dau.size().height; ++j){
+      if(isSimpleMinPoint(dau, j, i, DT8)){
+        simples.push_back(Point(i,j));
+      }
+    }
+  }
+  while(!simples.empty()){
+    vector<Point> next;
+    for(Point p : simples){
+      if(isSimpleMinPoint(skel, p.y, p.x, DT8)){
+        skel.at<uchar>(p.y, p.x) = 0;
+        for(int k=-1; k<3; ++k){
+          for(int h=-1; h<3; ++h){
+            if(!(k==0 && h==0) && insideMatrix(skel, p.y + h, p.x + k)){
+              next.push_back(Point(p.x + k, p.y + h));
+            }
+          }
+        }
+      }
+    }
+    simples = {};
+    reduceDistanceVal(skel);
+    for(Point p : next){
+      if(isSimpleMinPoint(skel, p.y, p.x, DT8)){
+        simples.push_back(Point(p.x, p.y));
+      }
+    }
+  }
+  for(int i=0; i < skel.size().width; ++i){
+    for(int j=0; j < skel.size().height; ++j){
+      if(skel.at<uchar>(j,i) > 0){
+        skel.at<uchar>(j,i) = 255;
+      }
+    }
+  }
+  return skel;
 }
