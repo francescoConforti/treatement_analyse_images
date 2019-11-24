@@ -22,12 +22,13 @@ Mat axeMedian_DT4(const Mat dau);
 int yokoi_DT4(const Mat img, int y, int x);
 int yokoi_DT8(const Mat img, int y, int x);
 int isForeground(uchar pixelValue);
-bool isSimpleMinPoint(const Mat img, int y, int x, bool DT8);
-void reduceDistanceVal(Mat mat);
+bool isSimplePoint(const Mat img, int y, int x, bool DT8);
+bool reduceDistanceVal(Mat mat);
 Mat skeletonization(const Mat dau, bool DT8);
+Mat skeletonize(Mat image, cv::Size size, int structuring);
 
 string window_modified("image modified");
-int WAITTIME = 2;
+int WAITTIME = 100;
   
 int main( int argc, char** argv ){
   string window_name("image originale");
@@ -45,17 +46,19 @@ int main( int argc, char** argv ){
   namedWindow(window_name, WINDOW_AUTOSIZE);
   imshow(window_name, image);
   namedWindow( window_modified, WINDOW_AUTOSIZE );
-  Mat distanceAuFond = DT8_chanfrein(image);
-  //Mat distanceAuFond = DT4_chanfrein(image);
-  imwrite("distanceAuFond.pgm", distanceAuFond);
-  imshow( window_modified, distanceAuFond );
-  //printInTerminal(distanceAuFond);
+  //Mat distanceAuFond = DT8_chanfrein(image);
+  Mat distanceAuFond = DT4_chanfrein(image);
+  Mat distanceNormalized = distanceAuFond.clone();
+  normalizeChanfrein(distanceNormalized);
+  imwrite("distanceAuFond.pgm", distanceNormalized);
+  imshow( window_modified, distanceNormalized);
+  //printInTerminal(distanceNormalized);
   waitKey(0);
-  Mat axe = axeMedian_DT8(distanceAuFond);
-  //Mat axe = axeMedian_DT4(distanceAuFond);
+  //Mat axe = axeMedian_DT8(distanceAuFond);
+  Mat axe = axeMedian_DT4(distanceAuFond);
   imshow( window_modified, axe );
   waitKey(0);
-  bool DT8 = true;
+  bool DT8 = false;
   Mat skel = skeletonization(distanceAuFond, DT8);
   imshow( window_modified, skel );
   waitKey(0);
@@ -68,7 +71,6 @@ Mat DT8_chanfrein(const Mat src){
   mask.at<uchar>(1, 1) = 0;
   forwardPass(inverted, res, mask);
   backwardPass(inverted, res, mask);
-  normalizeChanfrein(res);
   return res;
 }
 
@@ -81,7 +83,6 @@ Mat DT4_chanfrein(const Mat src){
   mask.at<uchar>(0, 0) = mask.at<uchar>(2, 2) = mask.at<uchar>(2, 0) = mask.at<uchar>(0, 2) = 255;
   forwardPass(inverted, res, mask);
   backwardPass(inverted, res, mask);
-  normalizeChanfrein(res);
   return res;
 }
 
@@ -263,45 +264,46 @@ int isForeground(uchar pixelValue){
   }
 }
 
-bool isSimpleMinPoint(const Mat img, int y, int x, bool DT8){
+bool isSimplePoint(const Mat img, int y, int x, bool DT8){
   bool res;
-  if(img.at<uchar>(y,x) < 2){ // not minimal
-    res = false;
+  if(DT8){
+    res = yokoi_DT8(img, y, x) == 1;
   } else{
-    if(DT8){
-      res = yokoi_DT8(img, y, x);
-    } else{
-      res = yokoi_DT4(img, y, x);
-    }
+    res = yokoi_DT4(img, y, x) == 1;
   }
   return res;
 }
 
-void reduceDistanceVal(Mat mat){
+//returns true if at least 1 pixel was modified
+bool reduceDistanceVal(Mat mat){
+  bool modified = false;
   for(int i=0; i < mat.size().width; ++i){
     for(int j=0; j < mat.size().height; ++j){
       uchar val = mat.at<uchar>(j,i);
       if(val > 1){
         mat.at<uchar>(j,i) = val - 1;
+        modified = true;
       }
     }
   }
+  return modified;
 }
-
+/*
 Mat skeletonization(const Mat dau, bool DT8){
-  Mat skel = dau;
+  Mat skel = dau.clone();
   vector<Point> simples;
   for(int i=0; i < dau.size().width; ++i){
     for(int j=0; j < dau.size().height; ++j){
-      if(isSimpleMinPoint(dau, j, i, DT8)){
+      if(isSimplePoint(dau, j, i, DT8)){
         simples.push_back(Point(i,j));
       }
     }
   }
-  while(!simples.empty()){
+  bool done = false;
+  while(!simples.empty() && !done){
     vector<Point> next;
     for(Point p : simples){
-      if(isSimpleMinPoint(skel, p.y, p.x, DT8)){
+      if(isSimplePoint(skel, p.y, p.x, DT8)){
         skel.at<uchar>(p.y, p.x) = 0;
         for(int k=-1; k<3; ++k){
           for(int h=-1; h<3; ++h){
@@ -313,13 +315,36 @@ Mat skeletonization(const Mat dau, bool DT8){
       }
     }
     simples = {};
-    reduceDistanceVal(skel);
     for(Point p : next){
-      if(isSimpleMinPoint(skel, p.y, p.x, DT8)){
+      if(isSimplePoint(skel, p.y, p.x, DT8)){
         simples.push_back(Point(p.x, p.y));
       }
     }
+    reduceDistanceVal(skel);
   }
+  for(int i=0; i < skel.size().width; ++i){
+    for(int j=0; j < skel.size().height; ++j){
+      if(skel.at<uchar>(j,i) > 0){
+        skel.at<uchar>(j,i) = 255;
+      }
+    }
+  }
+  return skel;
+}*/
+
+Mat skeletonization(const Mat dau, bool DT8){
+  Mat skel = dau.clone();
+  for(int n=1; n<=255; ++n){
+    for(int reps=0; reps < 2; ++reps){
+    for(int i=0; i < skel.size().width; ++i){
+      for(int j=0; j < skel.size().height; ++j){
+        if(skel.at<uchar>(j,i) == n && isSimplePoint(skel, j, i, DT8)){
+          skel.at<uchar>(j,i) = 0;
+        }
+      }
+    }
+  }
+}
   for(int i=0; i < skel.size().width; ++i){
     for(int j=0; j < skel.size().height; ++j){
       if(skel.at<uchar>(j,i) > 0){
