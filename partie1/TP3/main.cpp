@@ -46,22 +46,24 @@ int main( int argc, char** argv ){
   namedWindow(window_name, WINDOW_AUTOSIZE);
   imshow(window_name, image);
   namedWindow( window_modified, WINDOW_AUTOSIZE );
-  //Mat distanceAuFond = DT8_chanfrein(image);
-  Mat distanceAuFond = DT4_chanfrein(image);
+  Mat distanceAuFond = DT8_chanfrein(image);
+  //Mat distanceAuFond = DT4_chanfrein(image);
   Mat distanceNormalized = distanceAuFond.clone();
   normalizeChanfrein(distanceNormalized);
   imwrite("distanceAuFond.pgm", distanceNormalized);
   imshow( window_modified, distanceNormalized);
   //printInTerminal(distanceNormalized);
   waitKey(0);
-  //Mat axe = axeMedian_DT8(distanceAuFond);
-  Mat axe = axeMedian_DT4(distanceAuFond);
+  Mat axe = axeMedian_DT8(distanceAuFond);
+  //Mat axe = axeMedian_DT4(distanceAuFond);
   imshow( window_modified, axe );
   waitKey(0);
-  bool DT8 = false;
+  imwrite("axeMedian.pgm", axe);
+  bool DT8 = true;
   Mat skel = skeletonization(distanceAuFond, DT8);
   imshow( window_modified, skel );
   waitKey(0);
+  imwrite("skeleton.pgm", skel);
 }
 
 Mat DT8_chanfrein(const Mat src){
@@ -181,14 +183,14 @@ Mat axeMedian_DT8(const Mat dau){
     for(int j=0; j < dau.size().height; ++j){
       uchar pixelVal = dau.at<uchar>(j,i);
       int numBigger = 0;
-      for(int k=-1; k<3; ++k){
-        for(int h=-1; h<3; ++h){
+      for(int k=-1; k<2; ++k){
+        for(int h=-1; h<2; ++h){
           if(insideMatrix(dau, j+h, i+k) && dau.at<uchar>(j+h, i+k) > pixelVal){
             ++numBigger;
           }
         }
       }
-      if(numBigger > 0 || pixelVal < 2){
+      if(numBigger > 0 || pixelVal < 1){
         res.at<uchar>(j,i) = 0;
       }
     }
@@ -202,14 +204,14 @@ Mat axeMedian_DT4(const Mat dau){
     for(int j=0; j < dau.size().height; ++j){
       uchar pixelVal = dau.at<uchar>(j,i);
       int numBigger = 0;
-      for(int k=-1; k<3; ++k){
-        for(int h=-1; h<3; ++h){
+      for(int k=-1; k<2; ++k){
+        for(int h=-1; h<2; ++h){
           if(insideMatrix(dau, j+h, i+k) && dau.at<uchar>(j+h, i+k) > pixelVal){
             ++numBigger;
           }
         }
       }
-      if(numBigger > 1 || pixelVal < 2){
+      if(numBigger > 0 || pixelVal < 1){
         res.at<uchar>(j,i) = 0;
       }
     }
@@ -288,63 +290,20 @@ bool reduceDistanceVal(Mat mat){
   }
   return modified;
 }
-/*
-Mat skeletonization(const Mat dau, bool DT8){
-  Mat skel = dau.clone();
-  vector<Point> simples;
-  for(int i=0; i < dau.size().width; ++i){
-    for(int j=0; j < dau.size().height; ++j){
-      if(isSimplePoint(dau, j, i, DT8)){
-        simples.push_back(Point(i,j));
-      }
-    }
-  }
-  bool done = false;
-  while(!simples.empty() && !done){
-    vector<Point> next;
-    for(Point p : simples){
-      if(isSimplePoint(skel, p.y, p.x, DT8)){
-        skel.at<uchar>(p.y, p.x) = 0;
-        for(int k=-1; k<3; ++k){
-          for(int h=-1; h<3; ++h){
-            if(!(k==0 && h==0) && insideMatrix(skel, p.y + h, p.x + k)){
-              next.push_back(Point(p.x + k, p.y + h));
-            }
-          }
-        }
-      }
-    }
-    simples = {};
-    for(Point p : next){
-      if(isSimplePoint(skel, p.y, p.x, DT8)){
-        simples.push_back(Point(p.x, p.y));
-      }
-    }
-    reduceDistanceVal(skel);
-  }
-  for(int i=0; i < skel.size().width; ++i){
-    for(int j=0; j < skel.size().height; ++j){
-      if(skel.at<uchar>(j,i) > 0){
-        skel.at<uchar>(j,i) = 255;
-      }
-    }
-  }
-  return skel;
-}*/
 
 Mat skeletonization(const Mat dau, bool DT8){
   Mat skel = dau.clone();
   for(int n=1; n<=255; ++n){
     for(int reps=0; reps < 2; ++reps){
-    for(int i=0; i < skel.size().width; ++i){
-      for(int j=0; j < skel.size().height; ++j){
-        if(skel.at<uchar>(j,i) == n && isSimplePoint(skel, j, i, DT8)){
-          skel.at<uchar>(j,i) = 0;
+      for(int i=0; i < skel.size().width; ++i){
+        for(int j=0; j < skel.size().height; ++j){
+          if(skel.at<uchar>(j,i) == n && isSimplePoint(skel, j, i, DT8)){
+            skel.at<uchar>(j,i) = 0;
+          }
         }
       }
     }
   }
-}
   for(int i=0; i < skel.size().width; ++i){
     for(int j=0; j < skel.size().height; ++j){
       if(skel.at<uchar>(j,i) > 0){
