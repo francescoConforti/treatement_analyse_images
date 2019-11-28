@@ -46,20 +46,20 @@ int main( int argc, char** argv ){
   namedWindow(window_name, WINDOW_AUTOSIZE);
   imshow(window_name, image);
   namedWindow( window_modified, WINDOW_AUTOSIZE );
-  Mat distanceAuFond = DT8_chanfrein(image);
-  //Mat distanceAuFond = DT4_chanfrein(image);
+  //Mat distanceAuFond = DT8_chanfrein(image);
+  Mat distanceAuFond = DT4_chanfrein(image);
   Mat distanceNormalized = distanceAuFond.clone();
   normalizeChanfrein(distanceNormalized);
   imwrite("distanceAuFond.pgm", distanceNormalized);
   imshow( window_modified, distanceNormalized);
   //printInTerminal(distanceNormalized);
   waitKey(0);
-  Mat axe = axeMedian_DT8(distanceAuFond);
-  //Mat axe = axeMedian_DT4(distanceAuFond);
+  //Mat axe = axeMedian_DT8(distanceAuFond);
+  Mat axe = axeMedian_DT4(distanceAuFond);
   imshow( window_modified, axe );
   waitKey(0);
   imwrite("axeMedian.pgm", axe);
-  bool DT8 = true;
+  bool DT8 = false;
   Mat skel = skeletonization(distanceAuFond, DT8);
   imshow( window_modified, skel );
   waitKey(0);
@@ -293,11 +293,18 @@ bool reduceDistanceVal(Mat mat){
 
 Mat skeletonization(const Mat dau, bool DT8){
   Mat skel = dau.clone();
-  for(int n=1; n<=255; ++n){
+  Mat axe;
+  if(DT8){
+    axe = axeMedian_DT8(dau);
+  }else{
+    axe = axeMedian_DT4(dau);
+  }
+  for(int n=1; n<=255; ++n){ 
     for(int reps=0; reps < 2; ++reps){
       for(int i=0; i < skel.size().width; ++i){
         for(int j=0; j < skel.size().height; ++j){
-          if(skel.at<uchar>(j,i) == n && isSimplePoint(skel, j, i, DT8)){
+          if(skel.at<uchar>(j,i) == n && isSimplePoint(skel, j, i, DT8)
+              && axe.at<uchar>(j,i) == 0){
             skel.at<uchar>(j,i) = 0;
           }
         }

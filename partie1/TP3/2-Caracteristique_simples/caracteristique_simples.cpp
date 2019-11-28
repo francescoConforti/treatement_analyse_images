@@ -22,6 +22,9 @@ float rapport_isoperimetrique(const Mat img);
 float elongation(const Mat img);
 int intersections(const Mat dau, float m, int dq = 1);
 int crofton(const Mat img, float da = M_PI);
+int momentGeometrique(const Mat img, int p, int q);
+int momentCentre(const Mat img, int p, int q);
+double momentCentreNormalise(const Mat img, int p, int q);
 
 Mat DT4_chanfrein(const Mat src);
 void forwardPass(const Mat src, Mat dst, const Mat mask);
@@ -54,6 +57,9 @@ int main( int argc, char** argv ){
   float ri = rapport_isoperimetrique(image);
   float elong = elongation(image);
   int pCroft = crofton(image);
+  int m = momentGeometrique(image, 1, 1);
+  int mc = momentCentre(image, 1, 1);
+  double mcn = momentCentreNormalise(image, 1, 1);
   
   cout << "aire: " << a << "\n";
   cout << "largeur: " << largeur << "\n";
@@ -65,6 +71,9 @@ int main( int argc, char** argv ){
   cout << "rapport isopérimétrique: " << ri << "\n";
   cout << "elongation: " << elong << "\n";
   cout << "crofton perimeter: " << pCroft << "\n";
+  cout << "moment géométrique (p=q=1): " << m << "\n";
+  cout << "moment centrée (p=q=1): " << mc << "\n";
+  cout << "moment centrée normalizé (p=q=1): " << mcn << "\n";
 }
 
 int aire(const Mat img){
@@ -193,13 +202,44 @@ int intersections(const Mat dau, float m, int dq){
   return res;
 }
 
-int crofton(const Mat img, float da/* = pi/6*/){
+int crofton(const Mat img, float da/* = pi*/){
   Mat dau = DT4_chanfrein(img);
   int res = 0;
   for(int a=0; a <= 2 * M_PI; a+=da){
     res += intersections(dau, a);
   }
   return res;
+}
+
+int momentGeometrique(const Mat img, int p, int q){
+  int res = 0;
+  for(int i=0; i < img.size().width; ++i){
+    for(int j=0; j < img.size().height; ++j){
+      if(img.at<uchar>(j,i) == 0){
+        res += pow(i, p) * pow(j, q);
+      }
+    }
+  }
+  return res;
+}
+
+int momentCentre(const Mat img, int p, int q){
+  Point gCentre = gravityCentre(img);
+  int res = 0;
+  for(int i=0; i < img.size().width; ++i){
+    for(int j=0; j < img.size().height; ++j){
+      if(img.at<uchar>(j,i) == 0){
+        res += pow(i - gCentre.x, p) * pow(j - gCentre.y, q);
+      }
+    }
+  }
+  return res;
+}
+
+double momentCentreNormalise(const Mat img, int p, int q){
+  int sur = momentCentre(img, p, q);
+  int sousse = momentCentre(img, 0, 0);
+  return (sur * 1.0) / pow(sousse, ((p+q) / 2) +1);
 }
 
 /***************************************
